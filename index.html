@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Les quartiers de Mexico City</title>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Lato', sans-serif; background: #f5ede3; }
+
+  #header {
+    text-align: center;
+    padding: 18px 10px 10px;
+    background: #f5ede3;
+  }
+  #header h1 {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2.4rem;
+    color: #e06b4a;
+    letter-spacing: 0.3px;
+  }
+
+  #map {
+    width: 100%;
+    height: calc(100vh - 80px);
+  }
+
+  /* Leaflet popup custom */
+  .leaflet-popup-content-wrapper {
+    background: #2c1a0e;
+    color: #f5ede3;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    border: none;
+  }
+  .leaflet-popup-tip { background: #2c1a0e; }
+  .leaflet-popup-content {
+    font-family: 'Dancing Script', cursive;
+    font-size: 1.1rem;
+    margin: 8px 14px;
+  }
+  .leaflet-popup-content h3 {
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+    color: #f5ede3;
+  }
+  .leaflet-popup-content p {
+    font-family: 'Lato', sans-serif;
+    font-size: 0.72rem;
+    color: #d4b89a;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Legend */
+  #legend {
+    position: fixed;
+    bottom: 24px;
+    right: 16px;
+    background: #f5ede3ee;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.75rem;
+    color: #5a3e28;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    z-index: 1000;
+    line-height: 1.8;
+  }
+  #legend .dot {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  #legend .dot.quartier { background: #e0694a; opacity: 0.88; }
+  #legend .dot.parc     { background: #8db87a; opacity: 0.88; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Les quartiers de Mexico City</h1>
+</div>
+
+<div id="map"></div>
+
+<div id="legend">
+  <div><span class="dot quartier"></span>Quartier</div>
+  <div><span class="dot parc"></span>Parc / Nature</div>
+</div>
+
+<script>
+// Map init — centré sur CDMX, zoom similaire à la capture
+const map = L.map('map', {
+  center: [19.385, -99.133],
+  zoom: 12,
+  zoomControl: true,
+});
+
+// Tiles OpenStreetMap style Carto Light (propre, neutre)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// ─── Styles ───────────────────────────────────────────
+const styleQuartier = {
+  color: '#f5ede3',
+  weight: 2,
+  fillColor: '#e0694a',
+  fillOpacity: 0.82,
+};
+const styleParc = {
+  color: '#f5ede3',
+  weight: 2,
+  fillColor: '#8db87a',
+  fillOpacity: 0.80,
+};
+const styleXochi = {
+  color: '#f5ede3',
+  weight: 2,
+  fillColor: '#e0694a',
+  fillOpacity: 0.82,
+};
+
+function onEachFeature(feature, layer) {
+  if (feature.properties) {
+    const { name, desc } = feature.properties;
+    layer.bindPopup(`<h3>${name}</h3>${desc ? `<p>${desc}</p>` : ''}`);
+    layer.on('mouseover', function() { this.openPopup(); this.setStyle({ fillOpacity: 1 }); });
+    layer.on('mouseout',  function() { this.closePopup(); this.setStyle({ fillOpacity: feature.properties.isParc ? 0.80 : 0.82 }); });
+  }
+}
+
+// ─── GeoJSON des quartiers ─────────────────────────────
+const quartiers = {
+  type: "FeatureCollection",
+  features: [
+
+    // ── Centro Histórico ──
+    {
+      type: "Feature",
+      properties: { name: "Centro Histórico", desc: "Zócalo, Templo Mayor, Bellas Artes — le cœur colonial de la ville" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1480, 19.4420], [-99.1270, 19.4430], [-99.1220, 19.4330],
+          [-99.1270, 19.4250], [-99.1395, 19.4230], [-99.1490, 19.4260],
+          [-99.1520, 19.4340], [-99.1480, 19.4420]
+        ]]
+      }
+    },
+
+    // ── Polanco ──
+    {
+      type: "Feature",
+      properties: { name: "Polanco", desc: "Boutiques de luxe, restaurants étoilés, ambassades" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.2020, 19.4380], [-99.1800, 19.4410], [-99.1750, 19.4330],
+          [-99.1760, 19.4260], [-99.1870, 19.4220], [-99.2000, 19.4230],
+          [-99.2060, 19.4300], [-99.2020, 19.4380]
+        ]]
+      }
+    },
+
+    // ── La Condesa ──
+    {
+      type: "Feature",
+      properties: { name: "La Condesa", desc: "Art déco, parcs, cafés, vie de quartier" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1780, 19.4160], [-99.1660, 19.4175], [-99.1600, 19.4100],
+          [-99.1620, 19.4020], [-99.1720, 19.3990], [-99.1820, 19.4020],
+          [-99.1830, 19.4100], [-99.1780, 19.4160]
+        ]]
+      }
+    },
+
+    // ── La Zona Rosa ──
+    {
+      type: "Feature",
+      properties: { name: "La Zona Rosa", desc: "Vie nocturne, restaurants, communauté LGBT+" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1720, 19.4250], [-99.1610, 19.4260], [-99.1570, 19.4200],
+          [-99.1590, 19.4150], [-99.1680, 19.4130], [-99.1760, 19.4160],
+          [-99.1760, 19.4220], [-99.1720, 19.4250]
+        ]]
+      }
+    },
+
+    // ── La Roma ──
+    {
+      type: "Feature",
+      properties: { name: "La Roma", desc: "Galeries d'art, coffee shops, architecture porfirienne" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1640, 19.4210], [-99.1520, 19.4220], [-99.1470, 19.4140],
+          [-99.1490, 19.4060], [-99.1590, 19.4030], [-99.1680, 19.4060],
+          [-99.1700, 19.4140], [-99.1640, 19.4210]
+        ]]
+      }
+    },
+
+    // ── Coyoacán ──
+    {
+      type: "Feature",
+      properties: { name: "Coyoacán", desc: "Village dans la ville, maison de Frida Kahlo, marché" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1700, 19.3600], [-99.1430, 19.3610], [-99.1330, 19.3530],
+          [-99.1340, 19.3420], [-99.1480, 19.3360], [-99.1640, 19.3360],
+          [-99.1760, 19.3440], [-99.1780, 19.3530], [-99.1700, 19.3600]
+        ]]
+      }
+    },
+
+    // ── San Ángel ──
+    {
+      type: "Feature",
+      properties: { name: "San Ángel", desc: "Ruelles coloniales pavées, marché d'art, ex-couvents" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.2020, 19.3580], [-99.1850, 19.3600], [-99.1780, 19.3510],
+          [-99.1800, 19.3400], [-99.1920, 19.3350], [-99.2040, 19.3390],
+          [-99.2080, 19.3480], [-99.2020, 19.3580]
+        ]]
+      }
+    },
+
+    // ── Xochimilco ──
+    {
+      type: "Feature",
+      properties: { name: "Xochimilco", desc: "Canaux pre-hispaniques, trajineras colorées, chinampas" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1200, 19.2950], [-99.0800, 19.2900], [-99.0640, 19.2740],
+          [-99.0660, 19.2580], [-99.0820, 19.2480], [-99.1060, 19.2450],
+          [-99.1260, 19.2520], [-99.1380, 19.2660], [-99.1400, 19.2820],
+          [-99.1300, 19.2940], [-99.1200, 19.2950]
+        ]]
+      }
+    },
+
+    // ── Garibaldi ──
+    {
+      type: "Feature",
+      properties: { name: "Garibaldi", desc: "Place des mariachis, musique et mezcal toute la nuit" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1430, 19.4460], [-99.1340, 19.4470], [-99.1310, 19.4400],
+          [-99.1370, 19.4350], [-99.1450, 19.4350], [-99.1480, 19.4420],
+          [-99.1430, 19.4460]
+        ]]
+      }
+    },
+
+    // ── Parcs ──
+
+    // Bosque de Chapultepec
+    {
+      type: "Feature",
+      properties: { name: "Bosque de Chapultepec", desc: "Plus grand parc urbain de CDMX — musées, lac, forêt", isParc: true },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.2060, 19.4260], [-99.1900, 19.4260], [-99.1840, 19.4210],
+          [-99.1820, 19.4100], [-99.1820, 19.4000], [-99.1920, 19.3930],
+          [-99.2020, 19.3930], [-99.2140, 19.4000], [-99.2200, 19.4100],
+          [-99.2160, 19.4200], [-99.2060, 19.4260]
+        ]]
+      }
+    },
+
+    // Viveros de Coyoacán
+    {
+      type: "Feature",
+      properties: { name: "Viveros de Coyoacán", desc: "Pépinière publique et espace vert populaire", isParc: true },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.1810, 19.3700], [-99.1730, 19.3710], [-99.1700, 19.3660],
+          [-99.1720, 19.3610], [-99.1800, 19.3600], [-99.1850, 19.3640],
+          [-99.1810, 19.3700]
+        ]]
+      }
+    },
+
+    // Parque Nacional Desierto de los Leones (sud-ouest)
+    {
+      type: "Feature",
+      properties: { name: "Parque Nacional Desierto de los Leones", desc: "Forêt de pins et de chênes, ex-couvent carme", isParc: true },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-99.2900, 19.3250], [-99.2650, 19.3200], [-99.2500, 19.3050],
+          [-99.2520, 19.2880], [-99.2680, 19.2800], [-99.2900, 19.2840],
+          [-99.3040, 19.3000], [-99.3020, 19.3160], [-99.2900, 19.3250]
+        ]]
+      }
+    },
+
+  ]
+};
+
+// Ajouter les couches
+quartiers.features.forEach(feature => {
+  const style = feature.properties.isParc ? styleParc : styleQuartier;
+  const layer = L.geoJSON(feature, {
+    style,
+    onEachFeature
+  }).addTo(map);
+});
+
+// Labels avec L.divIcon
+const labels = [
+  { name: "Centro\nHistórico",   lat: 19.4330, lng: -99.1360 },
+  { name: "Polanco",             lat: 19.4320, lng: -99.1900 },
+  { name: "La Condesa",          lat: 19.4090, lng: -99.1715 },
+  { name: "La Zona Rosa",        lat: 19.4200, lng: -99.1660 },
+  { name: "La Roma",             lat: 19.4135, lng: -99.1580 },
+  { name: "Coyoacán",            lat: 19.3490, lng: -99.1530 },
+  { name: "San Ángel",           lat: 19.3490, lng: -99.1930 },
+  { name: "Xochimilco",          lat: 19.2700, lng: -99.1020 },
+  { name: "Garibaldi",           lat: 19.4415, lng: -99.1395 },
+  { name: "Chapultepec",         lat: 19.4100, lng: -99.1980, isParc: true },
+  { name: "Viveros",             lat: 19.3655, lng: -99.1765, isParc: true },
+  { name: "Desierto\nde los Leones", lat: 19.3025, lng: -99.2760, isParc: true },
+];
+
+labels.forEach(l => {
+  const color = l.isParc ? '#2a4520' : '#2c1a0e';
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+      font-family: 'Dancing Script', cursive;
+      font-size: ${l.isParc ? '11px' : '13px'};
+      font-weight: 600;
+      color: ${color};
+      text-align: center;
+      line-height: 1.25;
+      white-space: pre;
+      pointer-events: none;
+      text-shadow: 0 1px 3px rgba(245,237,227,0.9), 0 -1px 3px rgba(245,237,227,0.9), 1px 0 3px rgba(245,237,227,0.9), -1px 0 3px rgba(245,237,227,0.9);
+    ">${l.name}</div>`,
+    iconAnchor: [40, 10],
+    iconSize: [80, 20],
+  });
+  L.marker([l.lat, l.lng], { icon, interactive: false }).addTo(map);
+});
+
+</script>
+</body>
+</html>
